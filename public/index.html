@@ -13,91 +13,10 @@
     </style>
 </head>
 <body>
-
 <script src="/socket.io/socket.io.js"></script>
-<script src="/main.js"></script>
-
 <script src="https://threejs.org/build/three.min.js"></script>
+<script src="/kalman.js"></script>
 
-
-<script>
-
-    var camera, scene, renderer;
-    var mesh;
-
-    init();
-    animate();
-
-    function init() {
-
-        camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-        camera.position.z = 400;
-
-        scene = new THREE.Scene();
-
-        var texture = new THREE.TextureLoader().load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/crate.gif' );
-
-        var geometry = new THREE.BoxBufferGeometry( 200, 200, 200 );
-        var material = new THREE.MeshBasicMaterial( { map: texture } );
-
-        mesh = new THREE.Mesh( geometry, material );
-        scene.add( mesh );
-
-        renderer = new THREE.WebGLRenderer();
-        renderer.setPixelRatio( window.devicePixelRatio );
-        renderer.setSize( window.innerWidth, window.innerHeight );
-        document.body.appendChild( renderer.domElement );
-
-        //
-
-        window.addEventListener( 'resize', onWindowResize, false );
-
-    }
-
-    function onWindowResize() {
-
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-
-        renderer.setSize( window.innerWidth, window.innerHeight );
-
-    }
-
-    var socket = io("ws://localhost:3000");
-
-    var rx=0,ry=0,rz=0;
-
-    socket.on('gyrodata', function (data) {
-
-        console.log(rx);
-//        mesh.rotation.x = mesh.rotation.x+data.gyroX;
-//        mesh.rotation.y = mesh.rotation.y+data.gyroY;
-//        mesh.rotation.z = mesh.rotation.z+data.gyroZ;
-//
-        mesh.rotation.x = rx;
-        mesh.rotation.y = ry;
-        mesh.rotation.z = rz;
-
-                rx = (rx - data.gyroX/3000);
-                ry = (ry - data.gyroY/3000);
-                rz = (rz - data.gyroZ/3000);
-
-
-    });
-
-
-    function animate() {
-
-        requestAnimationFrame( animate );
-
-//        mesh.rotation.x += 0.005;
-//        mesh.rotation.y += 0.01;
-
-        renderer.render( scene, camera );
-
-    }
-
-</script>
-
+<script src="/main.js"></script>
 </body>
 </html>
