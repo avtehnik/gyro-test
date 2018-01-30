@@ -9,7 +9,8 @@
   "dependencies": {
     "bufferpack": "0.0.6",
     "express": "4.13.4",
-    "noble": "^1.8.1"
+    "noble": "^1.8.1",
+    "socket.io": "^2.0.4"
   },
   "scripts": {
     "start": "node index.js"

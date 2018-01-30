@@ -41,7 +41,6 @@
     }
 
     var socket = io("ws://localhost:3000");
-
     var rx=0,ry=0,rz=0, px=0,py=0,pz=0 ;
 
     socket.on('gyrodata', function (data) {
@@ -50,9 +49,9 @@
         mesh.rotation.y = ry;
         mesh.rotation.z = rz;
 
-        mesh.position.x = px;
-        mesh.position.y = py;
-        mesh.position.z = pz;
+        // mesh.position.x = px;
+        // mesh.position.y = py;
+        // mesh.position.z = pz;
 
 
         rx = (rx - (data.gyroX/3000));
