@@ -7,18 +7,42 @@
 
     function init() {
 
-        camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-        camera.position.z = 400;
+        camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 100 );
+        camera.position.z = 2;
 
         scene = new THREE.Scene();
 
-        var texture = new THREE.TextureLoader().load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/crate.gif' );
 
-        var geometry = new THREE.BoxBufferGeometry( 200, 200, 200 );
-        var material = new THREE.MeshBasicMaterial( { map: texture } );
+        controls = new THREE.TrackballControls( camera );
+        scene = new THREE.Scene();
+        scene.add( new THREE.HemisphereLight() );
+        var directionalLight = new THREE.DirectionalLight( 0xffeedd );
+        directionalLight.position.set( 0, 0, 2 );
+        scene.add( directionalLight );
 
-        mesh = new THREE.Mesh( geometry, material );
-        scene.add( mesh );
+
+        //var texture = new THREE.TextureLoader().load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/crate.gif' );
+        //
+        //var geometry = new THREE.BoxBufferGeometry( 200, 200, 200 );
+        //var material = new THREE.MeshBasicMaterial( { map: texture } );
+
+        //mesh = new THREE.Mesh( geometry, material );
+        //scene.add( mesh );
+
+        var loader = new THREE.TextureLoader();
+        var normal = loader.load( 'BiathlonRifle_3DS/Rifle_Normal.jpg' );
+        var loader = new THREE.TDSLoader( );
+        loader.setPath( 'BiathlonRifle_3DS/' );
+        loader.load( 'BiathlonRifle_3DS/BiathlonRifle.3ds', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material.normalMap = normal;
+                }
+            } );
+            scene.add( object );
+        });
+
+
 
         renderer = new THREE.WebGLRenderer();
         renderer.setPixelRatio( window.devicePixelRatio );
@@ -65,7 +89,6 @@
         px = data.accX;
         py = data.accY;
         pz = data.accZ;
-
 //        console.log(px,py,pz);
 
     });

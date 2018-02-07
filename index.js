@@ -45,11 +45,8 @@ var count = 0;
 
 var sensortimeBefore = 0;
 noble.on('discover', function(peripheral) {
-	console.log(peripheral);
     if (peripheral.uuid == uu_id) {
         noble.stopScanning();
-
-
       peripheral.on('disconnect', function() {
          noble.startScanning();
       });
@@ -75,8 +72,8 @@ noble.on('discover', function(peripheral) {
                               clearTimeout(resetTimeoutHandle);
                                 clicks++;
                                   var gyrodata =  bufferpack.unpack('<h(accelx)h(accely)h(accelz)L(accelSt)h(gyrox)h(gyroy)h(gyroz)L(gyroSt))', data, 0)
-                                console.log(gyrodata);
-                                console.log(clicksPerSecond(started, clicks).toPrecision(3),count, (gyrodata.accelSt-sensortimeBefore));
+//                                console.log(gyrodata);
+                                console.log(clicksPerSecond(started, clicks).toPrecision(3),count,gyrodata.gyroz, ((gyrodata.accelSt-sensortimeBefore)*39)/1000000, 'interval seconds');
 
                                   io.to('gyrodata').emit('gyrodata',{
                                     gyroX : convertRawGyro(gyrodata.gyrox),

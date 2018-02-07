@@ -46,7 +46,9 @@ var started, resetTimeoutHandle, resetTimeout = 1000,
 var count = 0;
 
 var sensortimeBefore = 0;
+console.log('discover');
 noble.on('discover', function(peripheral) {
+    console.log(peripheral.uuid == uu_id);
     if (peripheral.uuid == uu_id) {
         noble.stopScanning();
 
