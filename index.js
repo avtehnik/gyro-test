@@ -10,10 +10,9 @@ var noble = require('noble');
 
 var bufferpack = require('bufferpack');
 
-var  uu_id = 'c23d48a715f1433d9cd011199ab5f77a';
+var  uu_id = 'e7512198ae69'; //TODO: change it if need!!!
 var service_id = '6b943144075dd89ae6116cad4ac9b4a8'
 var characterist_ic = '6b943146075dd89ae6116cad4ac9b4a8'
-
 
 function convertRawGyro(gRaw) {
   var g = (gRaw * 250.0) / 32768.0;
@@ -45,6 +44,7 @@ var count = 0;
 
 var sensortimeBefore = 0;
 noble.on('discover', function(peripheral) {
+    console.log('Find: ',peripheral.advertisement.localName,  peripheral.uuid );
     if (peripheral.uuid == uu_id) {
         noble.stopScanning();
       peripheral.on('disconnect', function() {

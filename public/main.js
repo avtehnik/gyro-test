@@ -1,106 +1,148 @@
+var camera, scene, renderer, dirLight, dirLightHeper, hemiLight, hemiLightHelper;
+var mixers = [];
+var stats;
+var clock = new THREE.Clock();
 
-    var camera, scene, renderer;
-    var mesh;
+var startX = 1.5;
+var startY = 3.1;
+var startZ = 0;
 
-    init();
-    animate();
+init();
+animate();
 
-    function init() {
+function init() {
+    var container = document.getElementById( 'container' );
+    camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 5000 );
+    camera.position.set( 0, 0, 100 );
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color().setHSL( 0.6, 0, 1 );
+    scene.fog = new THREE.Fog( scene.background, 1, 5000 );
+    // LIGHTS
+    hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
+    hemiLight.color.setHSL( 0.6, 1, 0.6 );
+    hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+    hemiLight.position.set( 0, 50, 0 );
+    scene.add( hemiLight );
 
-        camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 100 );
-        camera.position.z = 2;
+    dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+    dirLight.color.setHSL( 0.1, 1, 0.95 );
+    dirLight.position.set( -1, 1.75, 1 );
+    dirLight.position.multiplyScalar( 30 );
+    scene.add( dirLight );
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    var d = 50;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    dirLight.shadow.camera.far = 3500;
+    dirLight.shadow.bias = -0.0001;
+    // GROUND
+    var groundGeo = new THREE.PlaneBufferGeometry( 10000, 10000 );
+    var groundMat = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0x050505 } );
+    groundMat.color.setHSL( 0.095, 1, 0.75 );
+    var ground = new THREE.Mesh( groundGeo, groundMat );
+    ground.rotation.x = -Math.PI/2;
+    ground.position.y = -33;
+    scene.add( ground );
+    ground.receiveShadow = true;
+    // SKYDOME
+    var vertexShader = document.getElementById( 'vertexShader' ).textContent;
+    var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
+    var uniforms = {
+        topColor:    { value: new THREE.Color( 0x0077ff ) },
+        bottomColor: { value: new THREE.Color( 0xffffff ) },
+        offset:      { value: 33 },
+        exponent:    { value: 0.6 }
+    };
+    uniforms.topColor.value.copy( hemiLight.color );
+    scene.fog.color.copy( uniforms.bottomColor.value );
+    var skyGeo = new THREE.SphereGeometry( 4000, 32, 15 );
+    var skyMat = new THREE.ShaderMaterial( { vertexShader: vertexShader, fragmentShader: fragmentShader, uniforms: uniforms, side: THREE.BackSide } );
+    var sky = new THREE.Mesh( skyGeo, skyMat );
+    scene.add( sky );
 
-        scene = new THREE.Scene();
+    // RENDERER
+    renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    container.appendChild( renderer.domElement );
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.renderReverseSided = false;
 
+    var loader = new THREE.TextureLoader();
+    var normal = loader.load( 'BiathlonRifle_3DS/Rifle_Normal.jpg' );
 
-        controls = new THREE.TrackballControls( camera );
-        scene = new THREE.Scene();
-        scene.add( new THREE.HemisphereLight() );
-        var directionalLight = new THREE.DirectionalLight( 0xffeedd );
-        directionalLight.position.set( 0, 0, 2 );
-        scene.add( directionalLight );
+    var dSloader = new THREE.TDSLoader( );
+    dSloader.setPath( 'BiathlonRifle_3DS/' );
+    dSloader.load( 'BiathlonRifle_3DS/BiathlonRifle.3ds', function ( object ) {
+        object.traverse( function ( child ) {
+            if ( child instanceof THREE.Mesh ) {
+                child.material.normalMap = normal;
+            }
+        } );
+        console.log(object);
 
+        var socket = io("ws://localhost:3000");
+        var rx=0,ry=0,rz=0, px=0,py=0,pz=0 ;
 
-        //var texture = new THREE.TextureLoader().load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/crate.gif' );
-        //
-        //var geometry = new THREE.BoxBufferGeometry( 200, 200, 200 );
-        //var material = new THREE.MeshBasicMaterial( { map: texture } );
+        socket.on('gyrodata', function (data) {
+            rx = (rx - (data.gyroX/3000));
+            ry = (ry - (data.gyroY/3000));
+            rz = (rz - (data.gyroZ/3000));
 
-        //mesh = new THREE.Mesh( geometry, material );
-        //scene.add( mesh );
+            object.rotation.x = rx + startX;
+            object.rotation.y = ry + startY;
+            object.rotation.z = rz + startZ;
 
-        var loader = new THREE.TextureLoader();
-        var normal = loader.load( 'BiathlonRifle_3DS/Rifle_Normal.jpg' );
-        var loader = new THREE.TDSLoader( );
-        loader.setPath( 'BiathlonRifle_3DS/' );
-        loader.load( 'BiathlonRifle_3DS/BiathlonRifle.3ds', function ( object ) {
-            object.traverse( function ( child ) {
-                if ( child instanceof THREE.Mesh ) {
-                    child.material.normalMap = normal;
-                }
-            } );
-            scene.add( object );
+//            px = (px - (data.accX/100));
+//            py = (py - (data.accY/100));
+//            pz = (pz - (data.accZ/100));
+//
+//            px = data.accX;
+//            py = data.accY;
+//            pz = data.accZ;
         });
 
-
-
-        renderer = new THREE.WebGLRenderer();
-        renderer.setPixelRatio( window.devicePixelRatio );
-        renderer.setSize( window.innerWidth, window.innerHeight );
-        document.body.appendChild( renderer.domElement );
-
-        //
-
-        window.addEventListener( 'resize', onWindowResize, false );
-
-    }
-
-    function onWindowResize() {
-
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-
-        renderer.setSize( window.innerWidth, window.innerHeight );
-
-    }
-
-    var socket = io("ws://localhost:3000");
-    var rx=0,ry=0,rz=0, px=0,py=0,pz=0 ;
-
-    socket.on('gyrodata', function (data) {
-
-        mesh.rotation.x = rx;
-        mesh.rotation.y = ry;
-        mesh.rotation.z = rz;
-
-        // mesh.position.x = px;
-        // mesh.position.y = py;
-        // mesh.position.z = pz;
-
-
-        rx = (rx - (data.gyroX/3000));
-        ry = (ry - (data.gyroY/3000));
-        rz = (rz - (data.gyroZ/3000));
-
-        px = (px - (data.accX/100));
-        py = (py - (data.accY/100));
-        pz = (pz - (data.accZ/100));
-
-        px = data.accX;
-        py = data.accY;
-        pz = data.accZ;
-//        console.log(px,py,pz);
-
+        scene.add( object );
     });
 
+    window.addEventListener( 'resize', onWindowResize, false );
+    document.addEventListener( 'keydown', onKeyDown, false );
+}
 
-    function animate() {
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+}
 
-        requestAnimationFrame( animate );
-
-//        mesh.rotation.x += 0.005;
-//        mesh.rotation.y += 0.01;
-
-        renderer.render( scene, camera );
-
+function onKeyDown ( event ) {
+    switch ( event.keyCode ) {
+        case 72: // h
+            hemiLight.visible = !hemiLight.visible;
+            hemiLightHelper.visible = !hemiLightHelper.visible;
+            break;
+        case 68: // d
+            dirLight.visible = !dirLight.visible;
+            dirLightHeper.visible = !dirLightHeper.visible;
+            break;
     }
+}
+
+function animate() {
+    requestAnimationFrame( animate );
+    render();
+}
+
+function render() {
+    var delta = clock.getDelta();
+    for ( var i = 0; i < mixers.length; i ++ ) {
+        mixers[ i ].update( delta );
+    }
+    renderer.render( scene, camera );
+}
