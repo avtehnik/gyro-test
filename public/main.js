@@ -7,6 +7,10 @@ var startX = 1.5;
 var startY = 3.1;
 var startZ = 0;
 
+var centerX = 0;
+var centerY = -10;
+var centerZ = -10;
+
 init();
 animate();
 
@@ -91,41 +95,24 @@ function init() {
             }
         });
 
-        //object.rotation.x =  startX;
-        //object.rotation.y =  startY;
-        //object.rotation.z =  startZ;
-
-
         globalObj = object;
         var socket = io("ws://localhost:3000");
-        var rx = 0, ry = 0, rz = 0, px = 0, py = 0, pz = 0;
+        var rx = 0, ry = 0, rz = 0;
 
         socket.on('gyrodata', function (data) {
-            rx = (rx - (data.gyroX / 3000));
-            ry = (ry - (data.gyroY / 3000));
-            rz = (rz - (data.gyroZ / 3000));
+            rx -= data.gyroX;
+            ry -= data.gyroY;
+            rz -= data.gyroZ;
 
             object.rotation.x = rx + startX;
             object.rotation.y = ry + startY;
             object.rotation.z = rz + startZ;
-
-            axesHelper.rotation.x += 0.1;
-            axesHelper.rotation.y += 0.001;
-            axesHelper.rotation.z += 0.01;
-
-
-//            px = (px - (data.accX/100));
-//            py = (py - (data.accY/100));
-//            pz = (pz - (data.accZ/100));
-//
-//            px = data.accX;
-//            py = data.accY;
-//            pz = data.accZ;
         });
 
         scene.add(object);
         object.children.forEach(function (child) {
-            child.geometry.translate(0, 49, -19);
+            //center of model
+            child.geometry.translate(centerX, centerY, centerZ);
         });
     });
 
@@ -154,16 +141,6 @@ function onKeyDown(event) {
 
 function animate() {
     requestAnimationFrame(animate);
-    //if (globalObj) {
-        //debug
-        //globalObj.rotation.x += 0.1;
-        //globalObj.rotation.y += 0.001;
-        //globalObj.rotation.z += 0.01;
-        //
-        //axesHelper.rotation.x += 0.1;
-        //axesHelper.rotation.y += 0.001;
-        //axesHelper.rotation.z += 0.01;
-    //}
     render();
 }
 
