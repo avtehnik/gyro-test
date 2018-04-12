@@ -11,11 +11,76 @@ var noble = require('noble');
 var bufferpack = require('bufferpack');
 
 var uu_id = 'e7512198ae69'; //TODO: change it if need!!!
-var service_id = '6b943144075dd89ae6116cad4ac9b4a8';
-var characterist_ic = '6b943146075dd89ae6116cad4ac9b4a8';
+var service_id_r      = '6b943144075dd89ae6116cad4ac9b4a8';
+var characterist_ic_r = '6b943146075dd89ae6116cad4ac9b4a8';
+
+var service_id_m      = '6c943154075dd89ae6116cad4ac9b4a8';
+var characterist_ic_m = '6c943156075dd89ae6116cad4ac9b4a8';
+var data_mod = 0;
+
+var X_ang = 0;
+var Y_ang = 0;
+var Z_ang = 0;
+
+var X_temp = 0;
+var Y_temp = 0;
+var Z_temp = 0;
+
+var time_old = 0;
+
+var offset_gx = 0.0126947886;
+var offset_gy = 0.0035971527;
+var offset_gz = 0.0069405;
+
+var Quaternion = require('quaternion');
+
+function deg_to_rad(v){
+    return (v/180)*Math.PI;
+}
+
+function rad_to_deg(v){
+    return (v*180)/Math.PI;
+}
+
+function delta_Time(time_val) {
+    var time_new = (time_val-time_old) * 0.000039;
+    time_old = time_val;
+    return time_new;
+}
+
+function angle_move(angle__,time_stamp){
+	angle__ = angle__ * time_stamp;
+	return angle__;
+}
 
 function convertRawGyro(gRaw) {
-    return (gRaw * 250.0) / 32768.0 / 3000;
+    return ((gRaw * (2000 / 32767.0))/180)*Math.PI;
+}
+
+function convertRawACC(gRaw) {
+    return (gRaw * (2 / 32767.0));
+}
+
+
+const conif = require('node-console-input');
+
+var name = conif.getConsoleInput("TYPE MOD: \n 'r' - raw from sensor \n 'm' - quaternions from madgwick filter \n", false);
+
+while(!['r', 'm'].includes(name)){
+    console.log("***!!!WRONG MOD!!!***\n");
+    var name = conif.getConsoleInput("TYPE MOD: \n 'r' - raw from sensor \n 'm' - quaternions from madgwick filter \n", false);
+}
+
+console.log("Good choice, " + name + "\n");
+
+if(name == 'r'){
+    data_mod = 0;
+    var service_id =  service_id_r;
+    var characterist_ic = characterist_ic_r;  
+} else if(name == 'm'){
+    var service_id =  service_id_m;
+    var characterist_ic = characterist_ic_m;
+    data_mod = 1;
 }
 
 noble.on('stateChange', function (state) {
@@ -64,17 +129,65 @@ noble.on('discover', function (peripheral) {
                             characteristic.on('data', function (data, isNotification) {
                                 clearTimeout(resetTimeoutHandle);
                                 clicks++;
-                                let gyrodata = bufferpack.unpack('<h(accelx)h(accely)h(accelz)L(accelSt)h(gyrox)h(gyroy)h(gyroz)L(gyroSt))', data, 0);
-                                // console.log(gyrodata);
-                                // console.log(clicksPerSecond(started, clicks).toPrecision(3), count, gyrodata.gyroz, ((gyrodata.accelSt - sensortimeBefore) * 39) / 1000000, 'interval seconds');
-                                console.log(gyrodata.gyrox, gyrodata.gyroy, gyrodata.gyroz);
+
+                                if(service_id == service_id_r){
+                                        
+                                        let gyrodata = bufferpack.unpack('<h(accelx)h(accely)h(accelz)L(accelSt)h(gyrox)h(gyroy)h(gyroz))', data, 0);
+            
+                                        X_temp = convertRawGyro(gyrodata.gyrox);// - 0.0126947886;
+                                        Y_temp = convertRawGyro(gyrodata.gyroy);// - 0.0035971527;
+                                        Z_temp = convertRawGyro(gyrodata.gyroz);// - 0.0069405;//0.0076008937;
+                                        //console.log('test');
+                                        var rrr = delta_Time(gyrodata.accelSt);
+
+                                        X_ang = angle_move(X_temp, rrr);
+                                        Y_ang = angle_move(Y_temp, rrr);
+                                        Z_ang = angle_move(Z_temp, rrr);
+                                        console.log(X_ang,Y_ang,Z_ang);
+
+                                }else if(service_id == service_id_m){
+                                
+                                        let gyrodata0 = bufferpack.unpack('<f(float0)f(float1)f(float2)f(float3)', data, 0); 
+
+                                        console.log('1test5 = ',gyrodata0);
+
+                                        var q_data = Quaternion();
+                                        q_data.w = gyrodata0.float0;
+                                        q_data.x = gyrodata0.float1;
+                                        q_data.y = gyrodata0.float2;
+                                        q_data.z = gyrodata0.float3;
+                                        console.log('1test6 = ',q_data);
+
+                                        //.setRotationFromQuaternion
+                                            var qx2;
+                                            var qy2;
+                                            var qz2;   
+                                            var q = q_data;// 'кватернион должен быть нормализован
+                                            qx2 = q.x * q.x;
+                                            qy2 = q.y * q.y;
+                                            qz2 = q.z * q.z;
+                                            var heading = Math.atan2(2 * (q.x * q.w + q.y * q.z), 1 - 2 * (qx2 + qy2));
+                                            var attitude = Math.asin(2 * (q.y * q.w - q.z * q.x));
+                                            var bank = Math.atan2(2 * (q.z * q.w + q.x * q.y), 1 - 2 * (qy2 + qz2));
+
+                                                
+                                        //var test0 = new THREE.Euler( -Math.PI/2, 0, Math.PI, 'XYZ' );
+
+                                            console.log(rad_to_deg(heading),rad_to_deg(attitude),rad_to_deg(bank));
+                                            var quat0 = new Quaternion([heading, attitude, bank]);
+                                            console.log(quat0);
+                                }
 
                                 io.to('gyrodata').emit('gyrodata', {
-                                    gyroX: convertRawGyro(gyrodata.gyrox),
-                                    gyroY: convertRawGyro(gyrodata.gyroy),
-                                    gyroZ: convertRawGyro(gyrodata.gyroz)
+
+                                    quaternion_:q_data,
+                                    ang_x:-X_ang,
+                                    ang_y:-Y_ang,
+                                    ang_z:Z_ang,
+                                    data_mod:data_mod
+
                                 });
-                                sensortimeBefore = gyrodata.accelSt;
+                                //sensortimeBefore = gyrodata.accelSt;
                                 count++;
                             });
                         })
