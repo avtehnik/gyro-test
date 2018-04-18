@@ -9,6 +9,7 @@ var port = process.env.PORT || 3000;
 var noble = require('noble');
 
 var bufferpack = require('bufferpack');
+var runInterval = require('runinterval');
 
 var uu_id = 'e7512198ae69'; //TODO: change it if need!!!
 var service_id_r      = '6b943144075dd89ae6116cad4ac9b4a8';
@@ -32,7 +33,11 @@ var offset_gx = 0.0126947886;
 var offset_gy = 0.0035971527;
 var offset_gz = 0.0069405;
 
+var isbuttonclick = 0;
+var buttonname = 0;
+
 var Quaternion = require('quaternion');
+
 
 function deg_to_rad(v){
     return (v/180)*Math.PI;
@@ -76,12 +81,13 @@ console.log("Good choice, " + name + "\n");
 if(name == 'r'){
     data_mod = 0;
     var service_id =  service_id_r;
-    var characterist_ic = characterist_ic_r;  
+    var characterist_ic = characterist_ic_r;
 } else if(name == 'm'){
     var service_id =  service_id_m;
     var characterist_ic = characterist_ic_m;
     data_mod = 1;
 }
+
 
 noble.on('stateChange', function (state) {
     console.log(state);
@@ -92,6 +98,7 @@ noble.on('stateChange', function (state) {
     }
     else {
         noble.stopScanning();
+        console.log('stop_scanning...');
     }
 });
 
@@ -101,6 +108,8 @@ started = new Date();
 function clicksPerSecond(started, clicks) {
     return clicks / ((new Date()) - started) * 1000;
 }
+
+
 
 noble.on('discover', function (peripheral) {
     console.log('Find: ', peripheral.advertisement.localName, peripheral.uuid);
@@ -112,12 +121,39 @@ noble.on('discover', function (peripheral) {
 
         peripheral.connect(function (err) {
             console.log('connected: ', peripheral.advertisement.localName, peripheral.uuid);
-            peripheral.discoverServices([service_id], function (err, services) {
+
+            peripheral.discoverServices([], function (err, services) {
+
                 services.forEach(function (service) {
+
                     console.log('found service:', service.uuid);
-                    service.discoverCharacteristics([characterist_ic], function (err, characteristics) {
+                    service.discoverCharacteristics([], function (err, characteristics) {
                         characteristics.forEach(function (characteristic) {
                             console.log('found characteristic:', characteristic.uuid);
+
+                            if(characteristic.uuid == '000015251212efde1523785feabcd123'){
+                            console.log("writeaaa");
+                                this.runInterval = setInterval(() => {
+
+                                        if(isbuttonclick == 1){
+                                            isbuttonclick = 0;
+                                            var value_ = 0;
+                                            if(buttonname == 'red'){
+                                                value_ = 0x01;
+                                            }else if(buttonname == 'blue'){
+                                                value_ = 0x02;
+                                            }else if(buttonname == 'green'){
+                                                value_ = 0x03;
+                                            }else if(buttonname == 'foc'){
+                                                value_ = 0x04;
+                                            }
+                                            characteristic.write(new Buffer([value_]), true, function(error) {
+                                                console.log('writed');
+                                            });
+                                        }
+                                }, 100);
+                            }
+
                             if (characteristic.uuid == characterist_ic) {
                                 characteristic.subscribe(function (err) {
                                     started = new Date();
@@ -131,9 +167,9 @@ noble.on('discover', function (peripheral) {
                                 clicks++;
 
                                 if(service_id == service_id_r){
-                                        
+
                                         let gyrodata = bufferpack.unpack('<h(accelx)h(accely)h(accelz)L(accelSt)h(gyrox)h(gyroy)h(gyroz))', data, 0);
-            
+
                                         X_temp = convertRawGyro(gyrodata.gyrox);// - 0.0126947886;
                                         Y_temp = convertRawGyro(gyrodata.gyroy);// - 0.0035971527;
                                         Z_temp = convertRawGyro(gyrodata.gyroz);// - 0.0069405;//0.0076008937;
@@ -143,11 +179,11 @@ noble.on('discover', function (peripheral) {
                                         X_ang = angle_move(X_temp, rrr);
                                         Y_ang = angle_move(Y_temp, rrr);
                                         Z_ang = angle_move(Z_temp, rrr);
-                                        console.log(X_ang,Y_ang,Z_ang);
+                                        //console.log(X_ang,Y_ang,Z_ang);
 
                                 }else if(service_id == service_id_m){
-                                
-                                        let gyrodata0 = bufferpack.unpack('<f(float0)f(float1)f(float2)f(float3)', data, 0); 
+
+                                        let gyrodata0 = bufferpack.unpack('<f(float0)f(float1)f(float2)f(float3)', data, 0);
 
                                         console.log('1test5 = ',gyrodata0);
 
@@ -161,7 +197,7 @@ noble.on('discover', function (peripheral) {
                                         //.setRotationFromQuaternion
                                             var qx2;
                                             var qy2;
-                                            var qz2;   
+                                            var qz2;
                                             var q = q_data;// 'кватернион должен быть нормализован
                                             qx2 = q.x * q.x;
                                             qy2 = q.y * q.y;
@@ -170,7 +206,7 @@ noble.on('discover', function (peripheral) {
                                             var attitude = Math.asin(2 * (q.y * q.w - q.z * q.x));
                                             var bank = Math.atan2(2 * (q.z * q.w + q.x * q.y), 1 - 2 * (qy2 + qz2));
 
-                                                
+
                                         //var test0 = new THREE.Euler( -Math.PI/2, 0, Math.PI, 'XYZ' );
 
                                             console.log(rad_to_deg(heading),rad_to_deg(attitude),rad_to_deg(bank));
@@ -187,8 +223,6 @@ noble.on('discover', function (peripheral) {
                                     data_mod:data_mod
 
                                 });
-                                //sensortimeBefore = gyrodata.accelSt;
-                                count++;
                             });
                         })
                     })
@@ -196,8 +230,8 @@ noble.on('discover', function (peripheral) {
             })
         })
     }
-
 });
+
 
 server.listen(port, function () {
     console.log('Server listening at port %d', port);
@@ -207,4 +241,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', function (socket) {
     socket.join('gyrodata');
+    socket.on('join', function(myfunc){
+        isbuttonclick = 1;
+        buttonname = myfunc.temp_id;
+        //console.log("r_button_socket");
+        console.log(myfunc.temp_id);
+    });
 });

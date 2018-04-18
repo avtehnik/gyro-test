@@ -15,25 +15,29 @@ animate();
 var globalObj;
 var axesHelper;
 
-// var buttons = document.getElementsByTagName("button");
-// for (let i = 0; i < buttons.length; i++) {
-//   buttons[i].addEventListener("click", onButtonClick, false);
-// };
+var socket = io("ws://localhost:3000");
 
-//var buttons0 = document.getElementsByTagName("a");
 var buttons0 = document.getElementsByTagName("button0");
 var buttons1 = document.getElementsByTagName("button1");
 var buttons2 = document.getElementsByTagName("button2");
-//document.body.appendChild(renderer.domElement);
-
-function onButtonClick(event) {
-  alert(event.target.id);
-}
+var buttons3 = document.getElementsByTagName("button3");
+buttons0[0].addEventListener("click", onButtonClick, false);
+buttons1[0].addEventListener("click", onButtonClick, false);
+buttons2[0].addEventListener("click", onButtonClick, false);
+buttons3[0].addEventListener("click", onButtonClick, false);
 
 document.body.appendChild(renderer.domElement);
 
-function init() {
+function onButtonClick(event) {
+    //console.log("testing1");
+    var temp_id = event.target.id;
 
+    socket.emit('join', {
+            temp_id:temp_id
+    });
+}
+
+function init() {
     var container = document.getElementById('container');
     camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 5000);
     //camera.position.set(0, 0, 100);
@@ -48,18 +52,6 @@ function init() {
     hemiLight.groundColor.setHSL(0.095, 1, 0.75);
     hemiLight.position.set(0, 0, -10);//0 30 0
     scene.add(hemiLight);
-    //hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 10 );
-    //scene.add( hemiLightHelper );
-
-                    // LIGHTS
-                // /hemiLight = new THREE.HemisphereLight( 0xff0000, 0x0000ff, 1 );
-                //hemiLight.color.setHSL( 0.6, 1, 0.6 );
-                //hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
-                //hemiLight.position.set( 0, 0, 10);
-                //hemiLight.rotation.x = 180 * Math.PI / 180;
-                //scene.add( hemiLight );
-                //hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 10 );
-                //scene.add( hemiLightHelper );
 
     dirLight = new THREE.DirectionalLight(0xffffff, 1);
     dirLight.color.setHSL(0.1, 1, 0.95);
@@ -76,7 +68,7 @@ function init() {
     dirLight.shadow.camera.bottom = -d;
     dirLight.shadow.camera.far = 3500;
     dirLight.shadow.bias = -0.0001;
-    //dirLightHeper = new THREE.DirectionalLightHelper( dirLight, 10 ) 
+    //dirLightHeper = new THREE.DirectionalLightHelper( dirLight, 10 )
     //scene.add( dirLightHeper );
     // GROUND
     var groundGeo = new THREE.PlaneBufferGeometry(10000, 10000);
@@ -85,7 +77,7 @@ function init() {
     var ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = 0 * Math.PI / 180;
     ground.position.z = -33;
-    
+
     scene.add(ground);
     ground.receiveShadow = true;
     // SKYDOME
@@ -94,9 +86,6 @@ function init() {
     var uniforms = {
         topColor: {value: new THREE.Color(0x0077ff)},
         bottomColor: {value: new THREE.Color(0xffffff)},
-        //topColor: {value: new THREE.Color(0xffffff)},
-        //bottomColor: {value: new THREE.Color(0x0077ff)},
-        
         offset: {value: 33},
         exponent: {value: 0.6}
     };
@@ -105,8 +94,6 @@ function init() {
     var skyGeo = new THREE.SphereGeometry(4000, 32, 15);
     var skyMat = new THREE.ShaderMaterial({vertexShader: vertexShader, fragmentShader: fragmentShader, uniforms: uniforms, side: THREE.BackSide});
     var sky = new THREE.Mesh(skyGeo, skyMat);
-    //sky.rotation.x = 90 * Math.PI / 180;
-    //sky.position.z = 1;
     scene.add(sky);
     axesHelper = new THREE.AxisHelper(30);
     scene.add(axesHelper);
@@ -134,27 +121,14 @@ function init() {
         });
 
         scene.add(object);
-        // object.children.forEach(function (child) {
-        //     //center of model
-        //     child.geometry.translate(centerX, centerY, centerZ);
-        //     //child.object.rotation.x = Math.PI;
-        //     //child.geometry.object.rotation.x(Math.PI*0.5);
-        //     //child.geometry.rotateY(Math.PI);
-        //     //start position
-        //     //object.setRotationFromEuler(b);
-        // });
-
 
         var isFirstStart = true;
-        //globalObj = object;
-        var socket = io("ws://localhost:3000");
 
         socket.on('gyrodata', function (data) {
             //console.log('1test7 = ',data.q_data);
             //object.rotateX(data.gyroX);
             //object.rotateY(data.gyroY);
             //object.rotateZ(data.gyroZ);
-
 
             if(isFirstStart){
                 object.children.forEach(function (child) {
@@ -182,11 +156,7 @@ function init() {
                 object.rotateY(Math.PI);
             }
 
-
-            //object.rotateZ(Math.PI*0.5);
         });
-
-        
     });
 
     window.addEventListener('resize', onWindowResize, false);
