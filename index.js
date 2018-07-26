@@ -17,6 +17,10 @@ var characterist_ic_r = '6b943146075dd89ae6116cad4ac9b4a8';
 
 var service_id_m      = '6c943154075dd89ae6116cad4ac9b4a8';
 var characterist_ic_m = '6c943156075dd89ae6116cad4ac9b4a8';
+
+var service_id_magn      = '6d943164075dd89ae6116cad4ac9b4a8';
+var characterist_ic_magn = '6d943166075dd89ae6116cad4ac9b4a8';
+
 var data_mod = 0;
 
 var X_ang = 0;
@@ -37,7 +41,6 @@ var isbuttonclick = 0;
 var buttonname = 0;
 
 var Quaternion = require('quaternion');
-
 
 function deg_to_rad(v){
     return (v/180)*Math.PI;
@@ -69,11 +72,12 @@ function convertRawACC(gRaw) {
 
 const conif = require('node-console-input');
 
-var name = conif.getConsoleInput("TYPE MOD: \n 'r' - raw from sensor \n 'm' - quaternions from madgwick filter \n", false);
+var textForUser = "TYPE MOD: \n 'r' - raw from sensor \n 'm' - quaternions from madgwick filter \n 'magn' - for get magnetometer data \n";
+var name = conif.getConsoleInput(textForUser, false);
 
-while(!['r', 'm'].includes(name)){
+while(!['r', 'm','magn'].includes(name)){
     console.log("***!!!WRONG MOD!!!***\n");
-    var name = conif.getConsoleInput("TYPE MOD: \n 'r' - raw from sensor \n 'm' - quaternions from madgwick filter \n", false);
+    var name = conif.getConsoleInput(textForUser, false);
 }
 
 console.log("Good choice, " + name + "\n");
@@ -86,6 +90,10 @@ if(name == 'r'){
     var service_id =  service_id_m;
     var characterist_ic = characterist_ic_m;
     data_mod = 1;
+} else if(name == 'magn'){
+    var service_id =  service_id_magn;
+    var characterist_ic = characterist_ic_magn;
+    data_mod = 2;
 }
 
 
@@ -185,7 +193,7 @@ noble.on('discover', function (peripheral) {
 
                                         let gyrodata0 = bufferpack.unpack('<f(float0)f(float1)f(float2)f(float3)', data, 0);
 
-                                        console.log('1test5 = ',gyrodata0);
+                                        //console.log('1test5 = ',gyrodata0);
 
                                         var q_data = Quaternion();
                                         q_data.w = gyrodata0.float0;
@@ -212,6 +220,10 @@ noble.on('discover', function (peripheral) {
                                             console.log(rad_to_deg(heading),rad_to_deg(attitude),rad_to_deg(bank));
                                             var quat0 = new Quaternion([heading, attitude, bank]);
                                             console.log(quat0);
+                                }else if(service_id == service_id_magn){
+
+                                    let gyrodata1 = bufferpack.unpack('<h(magX)h(magnY)h(magnZ)', data, 0);
+                                    console.log('magnetometer data: ', gyrodata1);
                                 }
 
                                 io.to('gyrodata').emit('gyrodata', {
