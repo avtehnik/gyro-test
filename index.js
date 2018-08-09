@@ -11,7 +11,7 @@ var noble = require('noble');
 var bufferpack = require('bufferpack');
 var runInterval = require('runinterval');
 
-var uu_id = 'e7512198ae69'; //TODO: change it if need!!!
+var uu_id = 'fcfe6c9c1be0';//'e7512198ae69'; //TODO: change it if need!!!
 var service_id_r      = '6b943144075dd89ae6116cad4ac9b4a8';
 var characterist_ic_r = '6b943146075dd89ae6116cad4ac9b4a8';
 
@@ -22,6 +22,8 @@ var service_id_magn      = '6d943164075dd89ae6116cad4ac9b4a8';
 var characterist_ic_magn = '6d943166075dd89ae6116cad4ac9b4a8';
 
 var data_mod = 0;
+
+var packesPS = 0;
 
 var X_ang = 0;
 var Y_ang = 0;
@@ -97,6 +99,26 @@ if(name == 'r'){
 }
 
 
+
+var time0 = new Date().toLocaleTimeString(); // 11:18:48 AM
+var date0 = new Date().toLocaleDateString(); // 11/16/2015
+var time_log = date0 + "_" + time0;
+console.log("FILE_index",time_log);
+var fs = require('fs');
+var fileId = null;
+var tempFile = [];
+var fileName = '/home/anatolii/hlam/logs/gyro_log_'+time_log+'.txt';
+fs.open(fileName, 'a', 777, function( e, id ) {
+  if (e) {
+    return console.error(e);
+  }
+  console.log("File opened successfully!");
+  fileId = id;
+  tempFile.push("sensorTime,ax,ay,az,gx,gy,gz");
+});
+
+
+
 noble.on('stateChange', function (state) {
     console.log(state);
 
@@ -129,7 +151,7 @@ noble.on('discover', function (peripheral) {
 
         peripheral.connect(function (err) {
             console.log('connected: ', peripheral.advertisement.localName, peripheral.uuid);
-
+            collectingTimeout();//*****************************
             peripheral.discoverServices([], function (err, services) {
 
                 services.forEach(function (service) {
@@ -188,6 +210,7 @@ noble.on('discover', function (peripheral) {
                                         Y_ang = angle_move(Y_temp, rrr);
                                         Z_ang = angle_move(Z_temp, rrr);
                                         //console.log(X_ang,Y_ang,Z_ang);
+                                        tempFile.push(gyrodata.accelSt+','+gyrodata.accelx+','+gyrodata.accely+','+gyrodata.accelz+','+gyrodata.gyrox+','+gyrodata.gyroy+','+gyrodata.gyroz+','+packesPS);
 
                                 }else if(service_id == service_id_m){
 
@@ -226,6 +249,8 @@ noble.on('discover', function (peripheral) {
                                     console.log('magnetometer data: ', gyrodata1);
                                 }
 
+                                packesPS += 1;
+
                                 io.to('gyrodata').emit('gyrodata', {
 
                                     quaternion_:q_data,
@@ -244,6 +269,13 @@ noble.on('discover', function (peripheral) {
     }
 });
 
+setInterval(function() {
+  process.stdout.clearLine();
+  process.stdout.cursorTo(0);
+  process.stdout.write("packets per second: "+packesPS);
+
+  packesPS = 0;
+}, 1000);
 
 server.listen(port, function () {
     console.log('Server listening at port %d', port);
@@ -260,3 +292,30 @@ io.on('connection', function (socket) {
         console.log(myfunc.temp_id);
     });
 });
+
+
+function exit() {
+    var delayInMilliseconds = 500; //1 second
+
+    setTimeout(function() {
+        fs.close(fileId);
+        fs.chown(fileName, 1000, 1000, console.log);
+        //your code to be executed after 1 second
+        return process.kill(process.pid);
+    }, delayInMilliseconds);
+}
+
+function writeFile(){
+
+  fs.write( fileId, tempFile.join("\n"), 1, 'utf8', function(){
+  });
+  console.log("**CHECK_OK**");
+  exit();
+}
+
+function collectingTimeout(){
+  setTimeout(function() {
+    writeFile();
+  }, 10000);
+
+}
