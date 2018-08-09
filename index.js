@@ -11,7 +11,8 @@ var noble = require('noble');
 var bufferpack = require('bufferpack');
 var runInterval = require('runinterval');
 
-var uu_id = 'fcfe6c9c1be0';//'e7512198ae69'; //TODO: change it if need!!!
+//var uu_id = 'fcfe6c9c1be0';//'e7512198ae69'; //TODO: change it if need!!!
+var uu_id = '8ec5b75e1ef84a2cbcaeb635e108787c'; //TODO: change it if need!!!
 var service_id_r      = '6b943144075dd89ae6116cad4ac9b4a8';
 var characterist_ic_r = '6b943146075dd89ae6116cad4ac9b4a8';
 
@@ -107,7 +108,7 @@ console.log("FILE_index",time_log);
 var fs = require('fs');
 var fileId = null;
 var tempFile = [];
-var fileName = '/home/anatolii/hlam/logs/gyro_log_'+time_log+'.txt';
+var fileName = __dirname + '/logs/gyro_log_'+time_log+'.txt';
 fs.open(fileName, 'a', 777, function( e, id ) {
   if (e) {
     return console.error(e);
